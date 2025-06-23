@@ -1,71 +1,48 @@
 import os
 import pandas as pd
+from src.utils.columns import CLUSTER_FEATURE_COLUMNS
 
-DATA_PATH = os.path.join('output', 'clustering', 'health_clusters.csv')
-SAVE_DIR = os.path.join('output', 'summary')
-os.makedirs(SAVE_DIR, exist_ok=True)
+def generate_cluster_summary(
+        cluster_path='output/clusters/health_clusters.csv',
+        output_dir='output/reports'
+):
+    os.makedirs(output_dir, exist_ok=True)
+    df = pd.read_csv(cluster_path)
 
-FEATURE_COLS = [
-    'Poor_or_Fair_Health',
-    "Adult_Smoking",
-    "Adult_Obesity",
-    "Uninsured",
-    "Primary_Care_Physician",
-    "Some_College",
-    "Unemployment",
-    "Children_in_Poverty",
-    "Air_Pollution_PM",
-    "Severe_Housing_Problems",
-    "Premature_Death_AIAN",
-    "Premature_Death_Asian",
-    "Premature_Death_Black",
-    "Premature_Death_Hispanic",
-    "Premature_Death_White",
-    "Premature_Death_NHOPI",
-]
+    national_mean = df[CLUSTER_FEATURE_COLUMNS].mean()
+    cluster_summary = df.groupby('Cluster')[CLUSTER_FEATURE_COLUMNS].mean().round(4)
+    cluster_counts = df['Cluster'].value_counts().sort_index()
+    cluster_summary['n_county'] = cluster_counts
 
-df = pd.read_csv(DATA_PATH)
+    report_lines = []
+    report_lines.append("건강 클러스터 분석 요약 리포트")
+    report_lines.append(f"총 클러스터 수: {df['Cluster'].nunique()}개\n")
 
-national_mean = df[FEATURE_COLS].mean()
+    for cluster_id, row in cluster_summary.iterrows():
+        report_lines.append(f"▷ cluster {cluster_id} (총 {int(row['n_county'])}개 카운티)")
+        diffs = (row[CLUSTER_FEATURE_COLUMNS] - national_mean).sort_values(ascending=False)
 
-cluster_summary = df.groupby('Cluster')[FEATURE_COLS].mean().round(4)
-cluster_counts = df['Cluster'].value_counts().sort_index()
-cluster_summary['n_county'] = cluster_counts
+        for feat in CLUSTER_FEATURE_COLUMNS:
+            val = row[feat]
+            delta = val - national_mean[feat]
+            arrow = '↑' if delta > 0 else '↓'
+            report_lines.append(
+                    f"   - {feat}: {val:.3f} ({abs(delta):.3f} {arrow} 전국 평균 {national_mean[feat]:.3f})"
+            )
+        
+        top_risk = diffs.head(2).index.tolist()
+        bottom_good = diffs.tail(2).index.tolist()
 
-csv_path = os.path.join(SAVE_DIR, 'cluster_summary.csv')
-cluster_summary.to_csv(csv_path)
-print(f'[完] 클러스터 평균값 저장 완료: {csv_path}')
-
-report_lines = []
-report_lines.append('건강 클러스터 분석 요약 리포트')
-report_lines.append(f"총 클러스터 수: {df['Cluster'].nunique()}개")
-
-for cluster_id, row in cluster_summary.iterrows():
-    report_lines.append(f"▷ Cluster {cluster_id} (총 {int(row['n_county'])}개 카운티)")
-    diffs = (row[FEATURE_COLS] - national_mean).sort_values(ascending=False)
-
-    for feat in FEATURE_COLS:
-        val = row[feat]
-        delta = val - national_mean[feat]
-        arrow = '↑' if delta > 0 else '↓'
+        report_lines.append("\n  ▷ 클라스터 특징 요약:")
+        report_lines.append(f"     * 높은 지표: {', '.join(top_risk)}")
+        report_lines.append(f"     * 낮은 지표: {', '.join(bottom_good)}")
         report_lines.append(
-            f"  - {feat}: {val:.3f} ({abs(delta):.3f} {arrow} 전국 평균 {national_mean[feat]:.3f})"
+                    f"     → 시사점: {top_risk[0]} 등의 수치가 전국 평균보다 높아, 지역 사회 기반의 건강 정책 강화가 필요합니다.\n"
         )
 
-    top_risk = diffs.head(2).index.tolist()
-    bottom_good = diffs.tail(2).index.tolist()
+    txt_path = os.path.join(output_dir, 'cluster_summary.txt')
 
-    report_lines.append("")
-    report_lines.append("  ▷ 클러스터 특징 요약:")
-    report_lines.append(f"     * 높은 지표: {', '.join(top_risk)}")
-    report_lines.append(f"     * 낮은 지표: {', '.join(bottom_good)}")
-
-    risk_msg = f"{top_risk[0]} 등의 수치가 전국 평균보다 높아, 지역 사회 기반의 건강 정책 강화가 필요합니다."
-    report_lines.append(f"     → 시사점: {risk_msg}")
-    report_lines.append("")
-
-txt_path = os.path.join(SAVE_DIR, 'cluster_summary.txt')
-with open(txt_path, 'w', encoding='utf-8') as f:
-    f.write('\n'.join(report_lines))
-
-print(f"[完] 텍스트 요약 보고서 저장 완료: {txt_path}")
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(report_lines))
+    
+    print(f"[완료] 텍스트 리포트 저장: {txt_path}")
