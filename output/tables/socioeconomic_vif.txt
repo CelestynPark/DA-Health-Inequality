@@ -1,0 +1,11 @@
+                                      Variable         VIF
+                                         const 1361.998254
+                 Poor or Fair Health raw value    4.840200
+                        Unemployment raw value    1.436978
+                   Income Inequality raw value    1.696935
+                 Children in Poverty raw value    5.835877
+              High School Completion raw value    2.872692
+             Median Household Income raw value    3.220762
+             Severe Housing Problems raw value    1.556420
+Children in Single-Parent Households raw value    2.201015
+                             % Rural raw value    1.523479
