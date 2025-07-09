@@ -36,4 +36,47 @@ with tabs[1]:
         st.image(coef_path, caption="회귀 계수 (Regression Coefficients)")
 
     if os.path.exists(diag_path):
+
         st.image(diag_path, caption="잔차 대 적합값 (Residuals vs Fitted)")
+
+with tabs[2]:
+    st.header("변수별 관계 분석")
+
+    st.markdown("""
+        주요 사회경제 변수들과 건강 결과(Premature Death, Poor/Fair Health) 간의 관계를 시각화하였다.
+        아래 그래프는 각 변수에 따라 건강 지표가 어떻게 변하는지를 보여준다.                
+    """)
+
+    scatter_plots = [
+        ("아동 빈곤율과 조기 사망률", "Children_in_poverty_vs_premature_death_scatter.png"),
+        ("고등학교 졸업률과 조기 사망률", "high_school_comletion_vs_premature_death_scatter.png"),
+        ("실업률과 사망률", "unemployment_vs_premature_death_scatter.png"),
+        ("빈곤율과 Poor/Fair Health", "poverty_vs_health_scatter.png"),
+        ("영향도 분석 (Influence Plot)", "influence_plot.png"),
+        ("정규성 검정 (QQ Plot)", "qq_plot.png"),
+        ("규모-위치 플롯 (Scale-Location Plot)", "scale_location.png")
+    ]
+
+    for title, filename in scatter_plots:
+        img_path = os.path.join("output", "figures", filename)
+        if os.path.exists(img_path):
+            st.image(img_path, caption=title)
+
+with tabs[3]:
+    st.header("클러스터링 시각화")
+
+    st.markdown("""
+        군집 기반 건강 격차 분석 결과를 지도 및 요약 통계로
+    """)
+
+    clustering_img_path = os.path.join("output", "maps", "map_Premature_Death_Total.png")
+    if os.path.exists(clustering_img_path):
+        st.image(clustering_img_path, caption="미국 카운티 클러스터링 지도 (사망률 기반)")
+
+    if os.path.exists("output/reports/cluster_summary.txt"):
+        st.subheader("클러스터 요역 통계")
+        with open("output/reports/cluster_summary.txt", "r", encoding='utf-8') as f:
+            summary = f.read()
+            st.text(summary)
+        st.text_area("Cluster Summary", summary, height=300)
+
